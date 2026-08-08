@@ -129,7 +129,7 @@ function ClaimCard({
         {claim.claim_text}
       </p>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badgeClass}`}
         >
@@ -434,11 +434,11 @@ export default function DocView({
   }, [claims, updateClaim]);
 
   return (
-    <main className="relative min-h-screen px-4 pt-28 pb-16">
+    <main className="relative min-h-screen px-6 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
-      <article className="relative z-10 mx-auto max-w-2xl">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
+      <article className="relative z-10 mx-auto w-full max-w-2xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">
           {title}
         </h1>
 

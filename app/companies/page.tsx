@@ -59,53 +59,65 @@ export default function CompaniesPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-4 pt-24 pb-16">
+    <main className="relative flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
-      <div className="relative z-10 w-full max-w-[700px]">
-        {/* Stepper */}
-        <div className="mb-8 flex items-center justify-center gap-2">
-          {STEPS.map((s, i) => (
-            <div key={s.num} className="flex items-center gap-2">
-              <div
-                className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  step === s.num
-                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                    : step > s.num
-                      ? "bg-white/10 text-zinc-300"
-                      : "bg-white/5 text-zinc-600"
-                }`}
-              >
-                <span
-                  className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+      <div className="relative z-10 mx-auto w-full max-w-[700px]">
+        {/* Stepper — compact on mobile */}
+        <div className="mb-6 sm:mb-8">
+          {/* Mobile: text-based stepper */}
+          <div className="flex items-center justify-center gap-2 sm:hidden">
+            <span className="text-xs text-zinc-500">Step {step} of 3</span>
+            <span className="text-zinc-700">—</span>
+            <span className="text-xs font-medium text-zinc-300">
+              {STEPS[step - 1].label}
+            </span>
+          </div>
+
+          {/* Desktop: full stepper */}
+          <div className="hidden items-center justify-center gap-2 sm:flex">
+            {STEPS.map((s, i) => (
+              <div key={s.num} className="flex items-center gap-2">
+                <div
+                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                     step === s.num
-                      ? "bg-white/20"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                       : step > s.num
-                        ? "bg-white/10"
-                        : "bg-white/5"
+                        ? "bg-white/10 text-zinc-300"
+                        : "bg-white/5 text-zinc-600"
                   }`}
                 >
-                  {step > s.num ? "✓" : s.num}
-                </span>
-                {s.label}
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
+                      step === s.num
+                        ? "bg-white/20"
+                        : step > s.num
+                          ? "bg-white/10"
+                          : "bg-white/5"
+                    }`}
+                  >
+                    {step > s.num ? "✓" : s.num}
+                  </span>
+                  {s.label}
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div
+                    className={`h-px w-8 ${
+                      step > s.num ? "bg-white/20" : "bg-white/5"
+                    }`}
+                  />
+                )}
               </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className={`h-px w-8 ${
-                    step > s.num ? "bg-white/20" : "bg-white/5"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-8 shadow-2xl shadow-black/40">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5 shadow-2xl shadow-black/40 sm:p-8">
           {/* Step 1 */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold tracking-tight text-zinc-100">
+              <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
                 Paste your document
               </h2>
               <p className="text-sm text-zinc-500">
@@ -131,7 +143,7 @@ export default function CompaniesPage() {
           {/* Step 2 */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold tracking-tight text-zinc-100">
+              <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
                 Doc details
               </h2>
               <p className="text-sm text-zinc-500">
@@ -167,7 +179,7 @@ export default function CompaniesPage() {
           {/* Step 3 */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold tracking-tight text-zinc-100">
+              <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
                 Your shareable link
               </h2>
               <p className="text-sm text-zinc-500">

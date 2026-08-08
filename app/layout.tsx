@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Fact Rot Detector",
@@ -18,7 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.className} bg-[#0a0a0a] text-zinc-100 antialiased`}
+        className="bg-[#0a0a0a] text-zinc-100 antialiased"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
         <div className="light-trails" aria-hidden="true">
           <div className="light-trail" />

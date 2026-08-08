@@ -82,13 +82,13 @@ export default function Support() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-5xl">
         {/* Top section */}
         <div className="text-center">
-          <h1 className="text-[50px] font-bold leading-none tracking-tight text-zinc-100 sm:text-[60px]">
+          <h1 className="text-3xl font-semibold leading-none tracking-tight text-zinc-100 sm:text-5xl md:text-[60px]">
             How can we help you?
           </h1>
           <p className="mx-auto mt-5 max-w-[600px] text-sm leading-relaxed text-zinc-500">
@@ -98,13 +98,13 @@ export default function Support() {
         </div>
 
         {/* Two-column layout */}
-        <div className="mt-16 flex flex-col gap-10 sm:flex-row">
+        <div className="mt-10 flex flex-col gap-8 sm:mt-16 sm:flex-row sm:gap-10">
           {/* Left column */}
           <div className="sm:w-[30%] sm:shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
               Support
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-zinc-100">FAQs</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-zinc-100">FAQs</h2>
             <p className="mt-2 text-xs leading-relaxed text-zinc-500">
               Quick answers to common questions about how Fact Rot Detector
               works and what happens to your documents.

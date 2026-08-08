@@ -83,7 +83,7 @@ const mockups = [MockDocBox, MockClaimChips, MockBadges];
 
 export default function HowItWorks() {
   return (
-    <main className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-4xl text-center">
@@ -91,7 +91,7 @@ export default function HowItWorks() {
           How it works
         </span>
 
-        <h1 className="mt-6 text-[60px] font-bold leading-none tracking-tight text-zinc-100 sm:text-[70px]">
+        <h1 className="mt-6 text-3xl font-semibold leading-none tracking-tight text-zinc-100 sm:text-5xl md:text-[70px]">
           3 steps to catch
           <br />
           fact rot
@@ -114,7 +114,7 @@ export default function HowItWorks() {
                   <h2 className="text-sm font-semibold text-zinc-100">
                     {step.heading}
                   </h2>
-                  <span className="text-[40px] font-bold leading-none text-white/[0.04]">
+                  <span className="text-[40px] font-semibold leading-none text-white/[0.04]">
                     {step.number}
                   </span>
                 </div>

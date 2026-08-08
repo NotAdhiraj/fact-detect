@@ -19,11 +19,11 @@ function Check({ className = "" }: { className?: string }) {
 
 export default function Pricing() {
   return (
-    <main className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-5xl text-center">
-        <h1 className="text-[60px] font-bold leading-none tracking-tight text-zinc-100 sm:text-[70px]">
+        <h1 className="text-3xl font-semibold leading-none tracking-tight text-zinc-100 sm:text-5xl md:text-[70px]">
           Plans and Pricing
         </h1>
 
@@ -35,7 +35,7 @@ export default function Pricing() {
           {/* Free */}
           <div className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-8 text-left">
             <h2 className="text-sm font-semibold text-zinc-100">Free</h2>
-            <p className="mt-3 text-[40px] font-bold leading-none text-zinc-100">
+            <p className="mt-3 text-[40px] font-semibold leading-none text-zinc-100">
               $0
             </p>
             <p className="mt-1.5 text-xs text-zinc-500">
@@ -83,7 +83,7 @@ export default function Pricing() {
                 Popular
               </span>
             </div>
-            <p className="mt-3 text-[40px] font-bold leading-none text-zinc-100">
+            <p className="mt-3 text-[40px] font-semibold leading-none text-zinc-100">
               Contact us
             </p>
             <p className="mt-1.5 text-xs text-zinc-500">For growing teams</p>
@@ -124,7 +124,7 @@ export default function Pricing() {
           {/* Companies — inverted */}
           <div className="flex flex-col rounded-2xl bg-[#f5f5f5] p-8 text-left">
             <h2 className="text-sm font-semibold text-zinc-900">Companies</h2>
-            <p className="mt-3 text-[40px] font-bold leading-none text-zinc-900">
+            <p className="mt-3 text-[40px] font-semibold leading-none text-zinc-900">
               Custom
             </p>
             <p className="mt-1.5 text-xs text-zinc-500">
