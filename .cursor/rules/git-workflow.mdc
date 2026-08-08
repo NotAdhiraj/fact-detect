@@ -1,0 +1,27 @@
+---
+description: Commit and push directly to main; skip feature branches
+alwaysApply: true
+---
+
+# Git Workflow
+
+Use `main` as the only working branch unless the user explicitly asks for a feature branch or PR.
+
+## Before making changes
+
+- Confirm the repo is on `main`: `git checkout main && git pull origin main`
+- Do not create `cursor/*` or other topic branches by default
+
+## After completing work
+
+When the user asks to commit, or when committing is clearly part of the task:
+
+1. Stage only relevant files (exclude unrelated changes)
+2. Commit on `main` with a concise message focused on why
+3. Push to remote: `git push origin main`
+
+## Do not
+
+- Create feature branches unless explicitly requested
+- Open PRs unless explicitly requested
+- Push to branches other than `main` unless explicitly requested
