@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -22,7 +23,14 @@ export default function Nav() {
           href="/"
           className="flex items-center gap-2.5 rounded-full px-3 py-2 text-base font-semibold tracking-tight text-zinc-100 transition hover:bg-white/5"
         >
-          <span className="inline-block h-8 w-8 rounded-full bg-gradient-to-br from-white to-zinc-400" />
+          <Image
+            src="/logo.png"
+            alt="Fact Rot logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-full"
+            priority
+          />
           <span className="hidden sm:inline">Fact Rot</span>
         </Link>
 
