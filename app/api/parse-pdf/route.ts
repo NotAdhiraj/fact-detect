@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import pdf from "pdf-parse";
 
 async function parseWithPdfjs(buffer: Buffer): Promise<{ text: string; numPages: number }> {
-  // Dynamic import to avoid build-time resolution of canvas dependency
-  // @ts-ignore - pdfjs-dist v3 types don't cover the /build/pdf.js subpath
-  const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
+  // Polyfill DOMMatrix for Node.js (required by pdfjs-dist v4+)
+  if (typeof globalThis.DOMMatrix === "undefined") {
+    (globalThis as any).DOMMatrix = class DOMMatrix {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      constructor() {}
+      multiply() { return new DOMMatrix(); }
+      translate() { return new DOMMatrix(); }
+      scale() { return new DOMMatrix(); }
+      rotate() { return new DOMMatrix(); }
+      toString() { return "matrix(1, 0, 0, 1, 0, 0)"; }
+    };
+  }
+
+  // @ts-ignore
+  const pdfjsLib = await import("pdfjs-dist/build/pdf.mjs");
 
   pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs";
 
   const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
   const pdfDoc = await loadingTask.promise;
