@@ -22,9 +22,13 @@ const VERIFY_PROMPT = `You verify factual claims against current web search resu
 - "stale": the claim was once true but is now outdated or contradicted by newer sources
 - "unverifiable": the search results don't contain enough information to confirm or deny the claim
 
-CRITICAL RULE: You may ONLY confirm a claim if the search results are specifically about the SAME named entity mentioned in the claim. A search result about a different product, company, or person with a similar attribute does NOT confirm the claim. For example, if the claim is about "CloudSync Pro", a result about "Google Drive" offering 2TB storage does NOT confirm it — that is a different entity entirely.
+CRITICAL RULES FOR ENTITY MATCHING:
+1. You may ONLY confirm a claim if the search results are specifically about the EXACT named entity mentioned in the claim — the full, complete name.
+2. If the claim names a specific product/company (e.g. "CloudSync Pro"), a source about a similarly-named but different product (e.g. just "CloudSync" without "Pro") does NOT count as confirmation — mark as unverifiable unless the source clearly refers to the exact same named entity.
+3. A search result about a different product, company, or person with a similar attribute does NOT confirm the claim. For example, if the claim is about "CloudSync Pro", a result about "Google Drive" offering 2TB storage does NOT confirm it — that is a different entity entirely.
+4. Partial name matches are NOT sufficient. "X" is not the same as "X Pro". "Acme" is not the same as "Acme Corp". The source must reference the exact full entity name.
 
-Do not confirm a claim based on a different entity having a similar attribute. Check that the source is specifically about the entity named in the claim before confirming. If the search results only discuss other entities with similar features, the claim is "unverifiable".
+Do not confirm a claim based on a different entity having a similar attribute or a partial name match. Check that the source specifically names the exact entity in the claim before confirming. If the search results only discuss other entities or use a different/shorter name, the claim is "unverifiable".
 
 Respond with ONLY valid JSON — no markdown fences, no preamble, no explanation.
 Output format: {"status": "<confirmed|stale|unverifiable>", "reasoning": "<one sentence citing what the search found>"}`;
@@ -106,19 +110,46 @@ export async function POST(request: NextRequest) {
 
   const prompt = `${VERIFY_PROMPT}\n\n---\n\nClaim: ${claim.claim_text}\n\nSearch results:\n${resultsText}`;
 
-  let raw: string;
-  let result: VerificationResult;
+  let result: VerificationResult = { status: "unverifiable", reasoning: "" };
 
-  try {
-    raw = await generateContent(prompt);
-    result = parseVerification(raw);
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? sanitizeError(error.message)
-        : "Verification failed";
-    console.error(`[verify] LLM call failed: ${message}`);
-    return NextResponse.json({ error: message }, { status: 502 });
+  const maxAttempts = 2;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const raw = await generateContent(prompt);
+      result = parseVerification(raw);
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Verification failed");
+      const message = sanitizeError(lastError.message);
+
+      if (attempt < maxAttempts && message.includes("429")) {
+        console.log(`[verify] Rate limited on attempt ${attempt}/${maxAttempts}, retrying in 2s...`);
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+
+      console.error(`[verify] LLM call failed on attempt ${attempt}/${maxAttempts}: ${message}`);
+      const now = new Date().toISOString();
+      await supabase
+        .from("claims")
+        .update({ status: "error", reasoning: message, verified_at: now })
+        .eq("id", claimId);
+      return NextResponse.json({ claimId, status: "error", reasoning: message });
+    }
+  }
+
+  if (lastError) {
+    const message = sanitizeError(lastError.message);
+    console.error(`[verify] LLM call failed after ${maxAttempts} attempts: ${message}`);
+    const now = new Date().toISOString();
+    await supabase
+      .from("claims")
+      .update({ status: "error", reasoning: message, verified_at: now })
+      .eq("id", claimId);
+    return NextResponse.json({ claimId, status: "error", reasoning: message });
   }
 
   const validStatuses = ["confirmed", "stale", "unverifiable"] as const;

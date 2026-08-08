@@ -26,6 +26,7 @@ const STATUS_STYLES: Record<string, string> = {
   unverifiable:
     "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
   pending: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  error: "bg-red-500/10 text-red-400 border border-red-500/20",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,6 +34,7 @@ const STATUS_LABEL: Record<string, string> = {
   stale: "Stale",
   unverifiable: "Unverifiable",
   pending: "Checking…",
+  error: "Error",
 };
 
 function FlagButton({
@@ -112,9 +114,11 @@ function FlagButton({
 function ClaimCard({
   claim,
   onFlagged,
+  onRetry,
 }: {
   claim: Claim;
   onFlagged: (claimId: string, newCount: number) => void;
+  onRetry: (claimId: string) => void;
 }) {
   const badgeClass = STATUS_STYLES[claim.status] ?? STATUS_STYLES.pending;
   const label = STATUS_LABEL[claim.status] ?? "Pending";
@@ -134,6 +138,17 @@ function ClaimCard({
         {claim.status === "pending" && (
           <span className="skeleton-pulse h-3 w-3 rounded-full border-2 border-zinc-600 border-t-zinc-300" />
         )}
+        {claim.status === "error" && (
+          <button
+            onClick={() => onRetry(claim.id)}
+            className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-[11px] font-medium text-red-400 border border-red-500/20 transition hover:bg-red-500/20"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+              <path fillRule="evenodd" d="M13.5 8a.75.75 0 0 1-.75.75H8.75v4a.75.75 0 0 1-1.5 0v-4H4a.75.75 0 0 1 0-1.5h3.25V4a.75.75 0 0 1 1.5 0v3.25H12.75a.75.75 0 0 1 .75.75Z" clipRule="evenodd" />
+            </svg>
+            Retry
+          </button>
+        )}
       </div>
 
       {claim.reasoning && claim.status !== "pending" && (
@@ -142,7 +157,7 @@ function ClaimCard({
         </p>
       )}
 
-      {claim.status !== "pending" && (
+      {claim.status !== "pending" && claim.status !== "error" && (
         <div className="mt-3 flex justify-end">
           <FlagButton
             claimId={claim.id}
@@ -155,6 +170,10 @@ function ClaimCard({
   );
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export default function DocView({
   docId,
   title,
@@ -163,6 +182,10 @@ export default function DocView({
 }: DocViewProps) {
   const [claims, setClaims] = useState<Claim[]>(initialClaims);
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const updateClaim = useCallback((claimId: string, patch: Partial<Claim>) => {
     setClaims((prev) =>
@@ -176,6 +199,48 @@ export default function DocView({
         c.id === claimId ? { ...c, flag_count: newCount } : c
       )
     );
+  }, []);
+
+  const handleRetry = useCallback(async (claimId: string) => {
+    setClaims((prev) =>
+      prev.map((c) =>
+        c.id === claimId ? { ...c, status: "pending", reasoning: null } : c
+      )
+    );
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claimId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Verification failed");
+      setClaims((prev) =>
+        prev.map((c) =>
+          c.id === claimId
+            ? {
+                ...c,
+                status: data.status,
+                reasoning: data.reasoning,
+                verified_at: new Date().toISOString(),
+              }
+            : c
+        )
+      );
+    } catch {
+      setClaims((prev) =>
+        prev.map((c) =>
+          c.id === claimId
+            ? {
+                ...c,
+                status: "error",
+                reasoning: "Retry failed.",
+                verified_at: new Date().toISOString(),
+              }
+            : c
+        )
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -214,8 +279,12 @@ export default function DocView({
         }
 
         // Re-verify only the pending claims.
-        for (const claim of pending) {
+        const total = pending.length;
+        setProgress({ current: 0, total });
+        for (let i = 0; i < pending.length; i++) {
+          const claim = pending[i];
           if (cancelled) return;
+          setProgress({ current: i + 1, total });
           try {
             const res = await fetch("/api/verify", {
               method: "POST",
@@ -234,12 +303,14 @@ export default function DocView({
           } catch {
             if (cancelled) return;
             updateClaim(claim.id, {
-              status: "unverifiable",
+              status: "error",
               reasoning: "Verification request failed.",
               verified_at: new Date().toISOString(),
             });
           }
+          if (i < pending.length - 1) await delay(1800);
         }
+        setProgress(null);
 
         if (!cancelled) setRunning(false);
         return;
@@ -279,8 +350,12 @@ export default function DocView({
       if (cancelled) return;
       setClaims(placeholders);
 
-      for (const claim of placeholders) {
+      const total = placeholders.length;
+      setProgress({ current: 0, total });
+      for (let i = 0; i < placeholders.length; i++) {
+        const claim = placeholders[i];
         if (cancelled) return;
+        setProgress({ current: i + 1, total });
 
         try {
           const res = await fetch("/api/verify", {
@@ -299,12 +374,14 @@ export default function DocView({
         } catch {
           if (cancelled) return;
           updateClaim(claim.id, {
-            status: "unverifiable",
+            status: "error",
             reasoning: "Verification request failed.",
             verified_at: new Date().toISOString(),
           });
         }
+        if (i < placeholders.length - 1) await delay(1800);
       }
+      setProgress(null);
 
       if (!cancelled) setRunning(false);
     }
@@ -318,13 +395,17 @@ export default function DocView({
 
   const handleRecheck = useCallback(async () => {
     setRunning(true);
+    const total = claims.length;
+    setProgress({ current: 0, total });
 
     const toRecheck = claims.map((c) => c.id);
     setClaims((prev) =>
       prev.map((c) => ({ ...c, status: "pending", reasoning: null }))
     );
 
-    for (const claimId of toRecheck) {
+    for (let i = 0; i < toRecheck.length; i++) {
+      const claimId = toRecheck[i];
+      setProgress({ current: i + 1, total });
       try {
         const res = await fetch("/api/verify", {
           method: "POST",
@@ -340,13 +421,15 @@ export default function DocView({
         });
       } catch {
         updateClaim(claimId, {
-          status: "unverifiable",
+          status: "error",
           reasoning: "Verification request failed.",
           verified_at: new Date().toISOString(),
         });
       }
+      if (i < toRecheck.length - 1) await delay(1800);
     }
 
+    setProgress(null);
     setRunning(false);
   }, [claims, updateClaim]);
 
@@ -367,13 +450,20 @@ export default function DocView({
           <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
             Claims
           </h2>
-          <button
-            onClick={handleRecheck}
-            disabled={running}
-            className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition hover:border-white/20 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {running ? "Checking…" : "Re-check this doc"}
-          </button>
+          <div className="flex items-center gap-3">
+            {progress && (
+              <span className="text-xs text-zinc-500">
+                Checking claim {progress.current} of {progress.total}…
+              </span>
+            )}
+            <button
+              onClick={handleRecheck}
+              disabled={running}
+              className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition hover:border-white/20 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {running ? "Checking…" : "Re-check this doc"}
+            </button>
+          </div>
         </div>
 
         <div className="mt-5 space-y-3">
@@ -385,6 +475,7 @@ export default function DocView({
               key={claim.id}
               claim={claim}
               onFlagged={handleFlagged}
+              onRetry={handleRetry}
             />
           ))}
         </div>
