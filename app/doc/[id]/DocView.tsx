@@ -15,6 +15,7 @@ type Claim = {
   status: string;
   reasoning: string | null;
   verified_at: string | null;
+  corrected_fact: string | null;
   flags: FlagData[];
 };
 
@@ -212,6 +213,17 @@ function ClaimCard({
         </p>
       )}
 
+      {claim.status === "stale" && claim.corrected_fact && (
+        <div className="mt-2.5 flex items-start gap-2 rounded-lg border-l-2 border-emerald-500/40 bg-emerald-500/5 pl-3 pr-2.5 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400">
+            <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+          </svg>
+          <span className="text-xs leading-relaxed text-emerald-300/90">
+            Corrected: {claim.corrected_fact}
+          </span>
+        </div>
+      )}
+
       {claim.status !== "pending" && claim.status !== "error" && (
         <div className="mt-3 flex justify-end">
           <FlagButton
@@ -229,6 +241,58 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function computeFactRotScore(claims: Claim[]): {
+  score: number;
+  label: string;
+  color: string;
+  barColor: string;
+} {
+  const total = claims.filter(
+    (c) => c.status !== "pending" && c.status !== "error"
+  ).length;
+  if (total === 0)
+    return { score: 0, label: "No data yet", color: "text-zinc-500", barColor: "bg-zinc-600" };
+
+  const confirmed = claims.filter((c) => c.status === "confirmed").length;
+  const unverifiable = claims.filter((c) => c.status === "unverifiable").length;
+
+  const score = Math.round(((confirmed * 1.0 + unverifiable * 0.4) / total) * 100);
+
+  if (score >= 80)
+    return { score, label: "Looking Good", color: "text-emerald-400", barColor: "bg-emerald-400" };
+  if (score >= 50)
+    return { score, label: "Some Rot Detected", color: "text-amber-400", barColor: "bg-amber-400" };
+  return { score, label: "Significant Rot", color: "text-red-400", barColor: "bg-red-400" };
+}
+
+function FactRotScore({ claims }: { claims: Claim[] }) {
+  const { score, label, color, barColor } = computeFactRotScore(claims);
+
+  return (
+    <div className="mt-8 rounded-xl border border-white/[0.06] bg-[#111111] p-5 transition-all duration-200 hover:border-white/20">
+      <div className="flex items-center justify-between">
+        <div className="flex items-baseline gap-3">
+          <span className={`text-4xl font-bold tracking-tight ${color}`}>
+            {score}<span className="text-lg font-medium">%</span>
+          </span>
+          <span className="text-sm text-zinc-500">Fresh</span>
+        </div>
+        <span className={`text-xs font-medium ${color}`}>{label}</span>
+      </div>
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <div className="mt-2 flex justify-between text-[10px] text-zinc-600">
+        <span>0%</span>
+        <span>100%</span>
+      </div>
+    </div>
+  );
+}
+
 export default function DocView({
   docId,
   title,
@@ -236,6 +300,7 @@ export default function DocView({
   initialClaims,
 }: DocViewProps) {
   const [claims, setClaims] = useState<Claim[]>(initialClaims);
+  const [scanned, setScanned] = useState(initialClaims.length > 0);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{
     current: number;
@@ -259,7 +324,7 @@ export default function DocView({
   const handleRetry = useCallback(async (claimId: string) => {
     setClaims((prev) =>
       prev.map((c) =>
-        c.id === claimId ? { ...c, status: "pending", reasoning: null } : c
+        c.id === claimId ? { ...c, status: "pending", reasoning: null, corrected_fact: null } : c
       )
     );
     try {
@@ -277,6 +342,7 @@ export default function DocView({
                 ...c,
                 status: data.status,
                 reasoning: data.reasoning,
+                corrected_fact: data.corrected_fact ?? null,
                 verified_at: new Date().toISOString(),
               }
             : c
@@ -298,14 +364,12 @@ export default function DocView({
     }
   }, []);
 
+  // On mount: fetch existing claims if none were passed via props (read-only).
   useEffect(() => {
     let cancelled = false;
-    const ran = { current: false };
-    if (ran.current) return;
-    ran.current = true;
 
-    async function load() {
-      setRunning(true);
+    async function fetchExisting() {
+      if (initialClaims.length > 0) return;
 
       let current: Claim[];
       try {
@@ -314,7 +378,6 @@ export default function DocView({
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch claims");
         current = data.claims;
       } catch {
-        setRunning(false);
         return;
       }
 
@@ -322,125 +385,123 @@ export default function DocView({
 
       if (current.length > 0) {
         setClaims(current);
+        setScanned(true);
 
         const pending = current.filter((c) => c.status === "pending");
-        if (pending.length === 0) {
-          setRunning(false);
-          return;
-        }
-
-        const total = pending.length;
-        setProgress({ current: 0, total });
-        for (let i = 0; i < pending.length; i++) {
-          const claim = pending[i];
-          if (cancelled) return;
-          setProgress({ current: i + 1, total });
-          try {
-            const res = await fetch("/api/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ claimId: claim.id }),
-            });
-            const data = await res.json();
-            if (!res.ok)
-              throw new Error(data.error ?? "Verification failed");
+        if (pending.length > 0) {
+          setRunning(true);
+          const total = pending.length;
+          setProgress({ current: 0, total });
+          for (let i = 0; i < pending.length; i++) {
+            const claim = pending[i];
             if (cancelled) return;
-            updateClaim(claim.id, {
-              status: data.status,
-              reasoning: data.reasoning,
-              verified_at: new Date().toISOString(),
-            });
-          } catch {
-            if (cancelled) return;
-            updateClaim(claim.id, {
-              status: "error",
-              reasoning: "Verification request failed.",
-              verified_at: new Date().toISOString(),
-            });
+            setProgress({ current: i + 1, total });
+            try {
+              const res = await fetch("/api/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ claimId: claim.id }),
+              });
+              const data = await res.json();
+              if (!res.ok)
+                throw new Error(data.error ?? "Verification failed");
+              if (cancelled) return;
+              updateClaim(claim.id, {
+                status: data.status,
+                reasoning: data.reasoning,
+                corrected_fact: data.corrected_fact ?? null,
+                verified_at: new Date().toISOString(),
+              });
+            } catch {
+              if (cancelled) return;
+              updateClaim(claim.id, {
+                status: "error",
+                reasoning: "Verification request failed.",
+                verified_at: new Date().toISOString(),
+              });
+            }
+            if (i < pending.length - 1) await delay(4500);
           }
-          if (i < pending.length - 1) await delay(4500);
+          setProgress(null);
+          setRunning(false);
         }
-        setProgress(null);
-
-        if (!cancelled) setRunning(false);
-        return;
       }
-
-      let extracted: { id: string; claim_text: string }[];
-      try {
-        const res = await fetch("/api/extract", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ docId }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Extraction failed");
-        extracted = data.claims;
-      } catch {
-        setRunning(false);
-        return;
-      }
-
-      if (!Array.isArray(extracted) || extracted.length === 0) {
-        setRunning(false);
-        return;
-      }
-
-      const placeholders: Claim[] = extracted.map((c) => ({
-        id: c.id,
-        doc_id: docId,
-        claim_text: c.claim_text,
-        status: "pending",
-        reasoning: null,
-        verified_at: null,
-        flags: [],
-      }));
-
-      if (cancelled) return;
-      setClaims(placeholders);
-
-      const total = placeholders.length;
-      setProgress({ current: 0, total });
-      for (let i = 0; i < placeholders.length; i++) {
-        const claim = placeholders[i];
-        if (cancelled) return;
-        setProgress({ current: i + 1, total });
-
-        try {
-          const res = await fetch("/api/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ claimId: claim.id }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "Verification failed");
-          if (cancelled) return;
-          updateClaim(claim.id, {
-            status: data.status,
-            reasoning: data.reasoning,
-            verified_at: new Date().toISOString(),
-          });
-        } catch {
-          if (cancelled) return;
-          updateClaim(claim.id, {
-            status: "error",
-            reasoning: "Verification request failed.",
-            verified_at: new Date().toISOString(),
-          });
-        }
-        if (i < placeholders.length - 1) await delay(4500);
-      }
-      setProgress(null);
-
-      if (!cancelled) setRunning(false);
     }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+    fetchExisting();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId]);
+
+  const handleScan = useCallback(async () => {
+    setRunning(true);
+
+    let extracted: { id: string; claim_text: string }[];
+    try {
+      const res = await fetch("/api/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Extraction failed");
+      extracted = data.claims;
+    } catch {
+      setRunning(false);
+      return;
+    }
+
+    if (!Array.isArray(extracted) || extracted.length === 0) {
+      setRunning(false);
+      return;
+    }
+
+    const placeholders: Claim[] = extracted.map((c) => ({
+      id: c.id,
+      doc_id: docId,
+      claim_text: c.claim_text,
+      status: "pending",
+      reasoning: null,
+      verified_at: null,
+      corrected_fact: null,
+      flags: [],
+    }));
+
+    setClaims(placeholders);
+    setScanned(true);
+
+    const total = placeholders.length;
+    setProgress({ current: 0, total });
+    for (let i = 0; i < placeholders.length; i++) {
+      const claim = placeholders[i];
+      setProgress({ current: i + 1, total });
+
+      try {
+        const res = await fetch("/api/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ claimId: claim.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Verification failed");
+        updateClaim(claim.id, {
+          status: data.status,
+          reasoning: data.reasoning,
+          corrected_fact: data.corrected_fact ?? null,
+          verified_at: new Date().toISOString(),
+        });
+      } catch {
+        updateClaim(claim.id, {
+          status: "error",
+          reasoning: "Verification request failed.",
+          verified_at: new Date().toISOString(),
+        });
+      }
+      if (i < placeholders.length - 1) await delay(4500);
+    }
+    setProgress(null);
+    setRunning(false);
+  }, [docId, updateClaim]);
 
   const handleRecheck = useCallback(async () => {
     setRunning(true);
@@ -449,7 +510,7 @@ export default function DocView({
 
     const toRecheck = claims.map((c) => c.id);
     setClaims((prev) =>
-      prev.map((c) => ({ ...c, status: "pending", reasoning: null }))
+      prev.map((c) => ({ ...c, status: "pending", reasoning: null, corrected_fact: null }))
     );
 
     for (let i = 0; i < toRecheck.length; i++) {
@@ -466,6 +527,7 @@ export default function DocView({
         updateClaim(claimId, {
           status: data.status,
           reasoning: data.reasoning,
+          corrected_fact: data.corrected_fact ?? null,
           verified_at: new Date().toISOString(),
         });
       } catch {
@@ -495,39 +557,63 @@ export default function DocView({
           {content}
         </p>
 
-        <div className="mt-12 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-            Claims
-          </h2>
-          <div className="flex items-center gap-3">
+        {scanned ? (
+          <>
+            <FactRotScore claims={claims} />
+
+            <div className="mt-12 flex items-center justify-between">
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+                Claims
+              </h2>
+              <div className="flex items-center gap-3">
+                {progress && (
+                  <span className="text-xs text-zinc-500">
+                    Checking claim {progress.current} of {progress.total}…
+                  </span>
+                )}
+                <button
+                  onClick={handleRecheck}
+                  disabled={running}
+                  className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition-all duration-200 hover:border-white/20 hover:text-zinc-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                >
+                  {running ? "Checking…" : "Re-check this doc"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {claims.length === 0 && !running && (
+                <p className="text-sm text-zinc-600">No claims extracted yet.</p>
+              )}
+              {claims.map((claim) => (
+                <ClaimCard
+                  key={claim.id}
+                  claim={claim}
+                  onFlagged={handleFlagged}
+                  onRetry={handleRetry}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="mt-16 flex flex-col items-center gap-5">
+            <p className="text-sm text-zinc-500">
+              This document hasn&apos;t been checked yet.
+            </p>
+            <button
+              onClick={handleScan}
+              disabled={running}
+              className="rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+            >
+              {running ? "Scanning…" : "Scan this document"}
+            </button>
             {progress && (
               <span className="text-xs text-zinc-500">
                 Checking claim {progress.current} of {progress.total}…
               </span>
             )}
-            <button
-              onClick={handleRecheck}
-              disabled={running}
-              className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition-all duration-200 hover:border-white/20 hover:text-zinc-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-            >
-              {running ? "Checking…" : "Re-check this doc"}
-            </button>
           </div>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          {claims.length === 0 && !running && (
-            <p className="text-sm text-zinc-600">No claims extracted yet.</p>
-          )}
-          {claims.map((claim) => (
-            <ClaimCard
-              key={claim.id}
-              claim={claim}
-              onFlagged={handleFlagged}
-              onRetry={handleRetry}
-            />
-          ))}
-        </div>
+        )}
       </article>
     </main>
   );

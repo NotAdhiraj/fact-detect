@@ -14,6 +14,7 @@ type ClaimRow = {
   status: string;
   reasoning: string | null;
   verified_at: string | null;
+  corrected_fact: string | null;
   flags: FlagData[];
 };
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   const { data: claims, error: claimsError } = await supabase
     .from("claims")
-    .select("id, doc_id, claim_text, status, reasoning, verified_at")
+    .select("id, doc_id, claim_text, status, reasoning, verified_at, corrected_fact")
     .eq("doc_id", docId);
 
   if (claimsError) {

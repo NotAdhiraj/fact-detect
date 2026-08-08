@@ -241,18 +241,19 @@ export async function POST(request: NextRequest) {
   // Deterministic status — model never decides this
   const status = computeStatus(finding!);
   const reasoning = buildReasoningString(finding!);
+  const correctedFact = status === "stale" ? finding!.contradicting_fact : null;
 
   console.log(`[verify] Claim ${claimId}: status="${status}", contradicting=${finding!.found_contradicting_fact}, contradicting_fact="${finding!.contradicting_fact}", supporting=${finding!.found_supporting_evidence}`);
 
   const now = new Date().toISOString();
   const { error: updateError } = await supabase
     .from("claims")
-    .update({ status, reasoning, verified_at: now })
+    .update({ status, reasoning, corrected_fact: correctedFact, verified_at: now })
     .eq("id", claimId);
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ claimId, status, reasoning });
+  return NextResponse.json({ claimId, status, reasoning, corrected_fact: correctedFact });
 }

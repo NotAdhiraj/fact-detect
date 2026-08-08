@@ -19,6 +19,7 @@ type ClaimRow = {
   status: string;
   reasoning: string | null;
   verified_at: string | null;
+  corrected_fact: string | null;
   flags: FlagData[];
 };
 
@@ -35,7 +36,7 @@ export default async function DocPage({ params }: DocPageProps) {
 
   const { data: claims } = await supabase
     .from("claims")
-    .select("id, doc_id, claim_text, status, reasoning, verified_at")
+    .select("id, doc_id, claim_text, status, reasoning, verified_at, corrected_fact")
     .eq("doc_id", doc.id)
     .order("created_at", { ascending: true });
 
