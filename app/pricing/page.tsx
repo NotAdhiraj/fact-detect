@@ -19,10 +19,10 @@ function Check({ className = "" }: { className?: string }) {
 
 export default function Pricing() {
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-4 md:pt-48 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto w-full max-w-5xl text-center">
+      <div className="relative z-10 mx-auto w-full max-w-6xl text-center">
         <h1 className="text-3xl font-semibold leading-none tracking-tight text-zinc-100 sm:text-5xl md:text-[70px]">
           Plans and Pricing
         </h1>
@@ -33,7 +33,7 @@ export default function Pricing() {
 
         <div className="mt-14 grid items-stretch gap-4 sm:grid-cols-3">
           {/* Free */}
-          <div className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-8 text-left">
+          <div className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-8 text-left transition-all duration-200 hover:border-white/20 hover:-translate-y-0.5">
             <h2 className="text-sm font-semibold text-zinc-100">Free</h2>
             <p className="mt-3 text-[40px] font-semibold leading-none text-zinc-100">
               $0
@@ -68,7 +68,7 @@ export default function Pricing() {
             <div className="mt-auto pt-8">
               <Link
                 href="/check"
-                className="inline-flex w-full items-center justify-center rounded-full border border-white/10 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/20 hover:text-zinc-100"
+                className="inline-flex w-full items-center justify-center rounded-full border border-white/10 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-white/20 hover:text-zinc-100 hover:scale-[1.02]"
               >
                 Get started free
               </Link>
@@ -76,7 +76,7 @@ export default function Pricing() {
           </div>
 
           {/* Pro */}
-          <div className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-8 text-left">
+          <div className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-8 text-left transition-all duration-200 hover:border-white/20 hover:-translate-y-0.5">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-zinc-100">Pro</h2>
               <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
@@ -114,7 +114,7 @@ export default function Pricing() {
             <div className="mt-auto pt-8">
               <Link
                 href="/check"
-                className="inline-flex w-full items-center justify-center rounded-full bg-zinc-100 px-5 py-2.5 text-sm font-medium text-zinc-900 transition hover:bg-white"
+                className="inline-flex w-full items-center justify-center rounded-full bg-zinc-100 px-5 py-2.5 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02]"
               >
                 Get started with Pro
               </Link>
@@ -122,7 +122,7 @@ export default function Pricing() {
           </div>
 
           {/* Companies — inverted */}
-          <div className="flex flex-col rounded-2xl bg-[#f5f5f5] p-8 text-left">
+          <div className="flex flex-col rounded-2xl bg-[#f5f5f5] p-8 text-left transition-all duration-200 hover:-translate-y-0.5">
             <h2 className="text-sm font-semibold text-zinc-900">Companies</h2>
             <p className="mt-3 text-[40px] font-semibold leading-none text-zinc-900">
               Custom
@@ -157,7 +157,7 @@ export default function Pricing() {
             <div className="mt-auto pt-8">
               <Link
                 href="/companies"
-                className="inline-flex w-full items-center justify-center rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800"
+                className="inline-flex w-full items-center justify-center rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-zinc-800 hover:scale-[1.02]"
               >
                 Get started with Companies
               </Link>

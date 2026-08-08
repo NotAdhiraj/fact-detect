@@ -82,10 +82,10 @@ export default function Support() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-4 md:pt-48 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto w-full max-w-5xl">
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
         {/* Top section */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold leading-none tracking-tight text-zinc-100 sm:text-5xl md:text-[60px]">
@@ -98,7 +98,7 @@ export default function Support() {
         </div>
 
         {/* Two-column layout */}
-        <div className="mt-10 flex flex-col gap-8 sm:mt-16 sm:flex-row sm:gap-10">
+        <div className="mx-auto mt-10 max-w-5xl flex flex-col gap-8 sm:mt-16 sm:flex-row sm:gap-10">
           {/* Left column */}
           <div className="sm:w-[30%] sm:shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
@@ -131,7 +131,7 @@ export default function Support() {
           Still have questions? Reach out at{" "}
           <a
             href="mailto:adhirajsingh908@gmail.com"
-            className="text-zinc-400 underline underline-offset-2 transition hover:text-zinc-200"
+            className="text-zinc-400 underline underline-offset-2 transition-all duration-200 hover:text-zinc-200"
           >
             adhirajsingh908@gmail.com
           </a>

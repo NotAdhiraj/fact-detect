@@ -43,20 +43,20 @@ export default function Nav() {
         <div className="hidden items-center gap-3 sm:flex">
           <Link
             href="/companies"
-            className={`rounded-full border px-5 py-2.5 text-base font-medium transition ${
+            className={`rounded-full border px-5 py-2.5 text-base font-medium transition-all duration-200 ${
               pathname === "/companies"
                 ? "border-white/20 text-zinc-100"
-                : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200 hover:scale-[1.02]"
             }`}
           >
             For Companies
           </Link>
           <Link
             href="/check"
-            className={`rounded-full px-5 py-2.5 text-base font-medium transition ${
+            className={`rounded-full px-5 py-2.5 text-base font-medium transition-all duration-200 ${
               pathname === "/check"
                 ? "bg-white text-zinc-900"
-                : "bg-zinc-100 text-zinc-900 hover:bg-white"
+                : "bg-zinc-100 text-zinc-900 hover:bg-white hover:scale-[1.02]"
             }`}
           >
             Check a Doc
@@ -67,10 +67,10 @@ export default function Nav() {
         <div className="flex items-center gap-2 sm:hidden">
           <Link
             href="/check"
-            className={`rounded-full px-5 py-2.5 text-sm font-medium transition ${
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 ${
               pathname === "/check"
                 ? "bg-white text-zinc-900"
-                : "bg-zinc-100 text-zinc-900 hover:bg-white"
+                : "bg-zinc-100 text-zinc-900 hover:bg-white hover:scale-[1.02]"
             }`}
           >
             Check a Doc

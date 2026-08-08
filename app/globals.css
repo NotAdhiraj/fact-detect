@@ -148,3 +148,13 @@ body {
 .skeleton-pulse {
   animation: skeleton-pulse 2s ease-in-out infinite;
 }
+
+/* Soft ambient pulse for landing hero glow */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.hero-glow-pulse {
+  animation: glow-pulse 4.5s ease-in-out infinite;
+}

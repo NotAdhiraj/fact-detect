@@ -101,7 +101,7 @@ function FlagButton({
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition hover:bg-white/15 disabled:opacity-50"
+            className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition-all duration-200 hover:bg-white/15 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
           >
             {submitting ? "…" : "Submit"}
           </button>
@@ -124,7 +124,7 @@ function ClaimCard({
   const label = STATUS_LABEL[claim.status] ?? "Pending";
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-[#111111] p-5 transition-colors hover:border-white/[0.1]">
+    <div className="rounded-xl border border-white/[0.06] bg-[#111111] p-5 transition-all duration-200 hover:border-white/20 hover:-translate-y-0.5">
       <p className="text-sm leading-relaxed text-zinc-200">
         {claim.claim_text}
       </p>
@@ -141,7 +141,7 @@ function ClaimCard({
         {claim.status === "error" && (
           <button
             onClick={() => onRetry(claim.id)}
-            className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-[11px] font-medium text-red-400 border border-red-500/20 transition hover:bg-red-500/20"
+            className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-[11px] font-medium text-red-400 border border-red-500/20 transition-all duration-200 hover:bg-red-500/20 hover:scale-[1.02]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
               <path fillRule="evenodd" d="M13.5 8a.75.75 0 0 1-.75.75H8.75v4a.75.75 0 0 1-1.5 0v-4H4a.75.75 0 0 1 0-1.5h3.25V4a.75.75 0 0 1 1.5 0v3.25H12.75a.75.75 0 0 1 .75.75Z" clipRule="evenodd" />
@@ -434,7 +434,7 @@ export default function DocView({
   }, [claims, updateClaim]);
 
   return (
-    <main className="relative min-h-screen px-6 pt-28 pb-16">
+    <main className="relative min-h-screen px-4 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <article className="relative z-10 mx-auto w-full max-w-2xl">
@@ -459,7 +459,7 @@ export default function DocView({
             <button
               onClick={handleRecheck}
               disabled={running}
-              className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition hover:border-white/20 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition-all duration-200 hover:border-white/20 hover:text-zinc-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
             >
               {running ? "Checking…" : "Re-check this doc"}
             </button>

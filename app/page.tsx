@@ -10,9 +10,9 @@ const logos = [
 
 export default function Home() {
   return (
-    <main className="relative flex min-h-screen flex-col justify-center overflow-hidden px-6">
+    <main className="relative flex min-h-screen flex-col justify-center overflow-hidden px-4">
       {/* Hero glow */}
-      <div className="hero-glow" aria-hidden="true" />
+      <div className="hero-glow hero-glow-pulse" aria-hidden="true" />
 
       {/* Stat chips — scattered decorations */}
       <div className="pointer-events-none absolute inset-0 z-10 hidden sm:block" aria-hidden="true">
@@ -50,13 +50,13 @@ export default function Home() {
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/check"
-            className="w-full rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition hover:bg-white sm:w-auto"
+            className="w-full rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02] sm:w-auto"
           >
             Check a Document
           </Link>
           <Link
             href="/companies"
-            className="w-full rounded-full border border-white/10 px-6 py-3 text-sm font-medium text-zinc-300 transition hover:border-white/20 hover:text-zinc-100 sm:w-auto"
+            className="w-full rounded-full border border-white/10 px-6 py-3 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-white/20 hover:text-zinc-100 hover:scale-[1.02] sm:w-auto"
           >
             For Companies
           </Link>
@@ -64,7 +64,7 @@ export default function Home() {
       </div>
 
       {/* Trusted-by logos */}
-      <div className="relative z-10 mt-20 text-center">
+      <div className="relative z-10 mx-auto mt-20 max-w-3xl text-center">
         <p className="mb-6 text-[10px] uppercase tracking-widest text-zinc-700">
           Trusted by
         </p>

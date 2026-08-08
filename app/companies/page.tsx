@@ -59,7 +59,7 @@ export default function CompaniesPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
+    <main className="relative flex min-h-screen items-center justify-center px-4 pt-24 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-[700px]">
@@ -113,7 +113,7 @@ export default function CompaniesPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5 shadow-2xl shadow-black/40 sm:p-8">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5 shadow-2xl shadow-black/40 transition-all duration-200 hover:border-white/20 sm:p-8">
           {/* Step 1 */}
           {step === 1 && (
             <div className="space-y-4">
@@ -192,7 +192,7 @@ export default function CompaniesPage() {
                 </span>
                 <button
                   onClick={copyLink}
-                  className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-white/15"
+                  className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-all duration-200 hover:bg-white/15 hover:scale-[1.02]"
                 >
                   Copy link
                 </button>
@@ -228,7 +228,7 @@ export default function CompaniesPage() {
               <button
                 onClick={handleNext}
                 disabled={!canNext || submitting}
-                className="rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
               >
                 {submitting
                   ? "Creating…"

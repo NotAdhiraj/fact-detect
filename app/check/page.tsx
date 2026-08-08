@@ -87,11 +87,11 @@ export default function CheckPage() {
   );
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
+    <main className="relative flex min-h-screen items-center justify-center px-4 pt-24 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-[700px]">
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5 shadow-2xl shadow-black/40 sm:p-8">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5 shadow-2xl shadow-black/40 transition-all duration-200 hover:border-white/20 sm:p-8">
           <h1 className="text-xl font-semibold tracking-tight text-zinc-100 sm:text-2xl">
             Check for Fact Rot
           </h1>
@@ -227,11 +227,11 @@ export default function CheckPage() {
             )}
 
             <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={submitting || !title.trim() || !content.trim()}
-                className="w-full rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-              >
+            <button
+              type="submit"
+              disabled={submitting || !title.trim() || !content.trim()}
+              className="w-full rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:w-auto"
+            >
                 {submitting ? "Creating…" : "Check for Fact Rot"}
               </button>
             </div>

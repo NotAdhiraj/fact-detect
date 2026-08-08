@@ -83,10 +83,10 @@ const mockups = [MockDocBox, MockClaimChips, MockBadges];
 
 export default function HowItWorks() {
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-4 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto w-full max-w-4xl text-center">
+      <div className="relative z-10 mx-auto w-full max-w-5xl text-center">
         <span className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-400">
           How it works
         </span>
@@ -108,7 +108,7 @@ export default function HowItWorks() {
             return (
               <div
                 key={step.number}
-                className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-6 text-left"
+                className="flex flex-col rounded-2xl border border-[#262626] bg-[#141414] p-6 text-left transition-all duration-200 hover:border-white/20 hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between">
                   <h2 className="text-sm font-semibold text-zinc-100">
@@ -133,7 +133,7 @@ export default function HowItWorks() {
 
         <Link
           href="/check"
-          className="mt-12 inline-block rounded-full bg-zinc-100 px-7 py-3 text-sm font-medium text-zinc-900 transition hover:bg-white"
+          className="mt-12 inline-block rounded-full bg-zinc-100 px-7 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02]"
         >
           Try it now
         </Link>
