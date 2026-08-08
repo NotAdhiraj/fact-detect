@@ -3,6 +3,13 @@ export type ChatMessage = {
   content: string;
 };
 
+export function parseJsonContent<T = unknown>(content: string): T {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
+  const jsonText = fenced ? fenced[1].trim() : trimmed;
+  return JSON.parse(jsonText) as T;
+}
+
 export async function chatCompletion<T = unknown>(
   messages: ChatMessage[]
 ): Promise<T> {
@@ -41,5 +48,5 @@ export async function chatCompletion<T = unknown>(
     throw new Error("OpenRouter response did not include message content");
   }
 
-  return JSON.parse(content) as T;
+  return parseJsonContent<T>(content);
 }
