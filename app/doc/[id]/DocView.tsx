@@ -308,7 +308,7 @@ export default function DocView({
               verified_at: new Date().toISOString(),
             });
           }
-          if (i < pending.length - 1) await delay(1800);
+          if (i < pending.length - 1) await delay(4500);
         }
         setProgress(null);
 
@@ -379,7 +379,7 @@ export default function DocView({
             verified_at: new Date().toISOString(),
           });
         }
-        if (i < placeholders.length - 1) await delay(1800);
+        if (i < placeholders.length - 1) await delay(4500);
       }
       setProgress(null);
 
@@ -426,7 +426,7 @@ export default function DocView({
           verified_at: new Date().toISOString(),
         });
       }
-      if (i < toRecheck.length - 1) await delay(1800);
+      if (i < toRecheck.length - 1) await delay(4500);
     }
 
     setProgress(null);

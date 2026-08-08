@@ -33,6 +33,19 @@ Do not confirm a claim based on a different entity having a similar attribute or
 Respond with ONLY valid JSON — no markdown fences, no preamble, no explanation.
 Output format: {"status": "<confirmed|stale|unverifiable>", "reasoning": "<one sentence citing what the search found>"}`;
 
+function buildVerifyPrompt(docTitle: string, claimText: string, resultsText: string): string {
+  return `${VERIFY_PROMPT}
+
+---
+
+DOCUMENT CONTEXT: This claim is about "${docTitle}". Only confirm using search results that are clearly about this specific entity — not a similarly-named or generic product/plan from a different company, even if the claim doesn't repeat the full name.
+
+Claim: ${claimText}
+
+Search results:
+${resultsText}`;
+}
+
 function stripFences(content: string): string {
   const trimmed = content.trim();
   const fenced = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
@@ -67,6 +80,15 @@ export async function POST(request: NextRequest) {
   if (claimError || !claim) {
     return NextResponse.json({ error: "Claim not found" }, { status: 404 });
   }
+
+  // Fetch the document title for entity context
+  const { data: doc, error: docError } = await supabase
+    .from("docs")
+    .select("title")
+    .eq("id", claim.doc_id)
+    .single();
+
+  const docTitle = doc?.title ?? "Unknown document";
 
   let searchResults;
   try {
@@ -108,11 +130,11 @@ export async function POST(request: NextRequest) {
     .map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.content}`)
     .join("\n\n");
 
-  const prompt = `${VERIFY_PROMPT}\n\n---\n\nClaim: ${claim.claim_text}\n\nSearch results:\n${resultsText}`;
+  const prompt = buildVerifyPrompt(docTitle, claim.claim_text, resultsText);
 
   let result: VerificationResult = { status: "unverifiable", reasoning: "" };
 
-  const maxAttempts = 2;
+  const maxAttempts = 3; // Allow up to 2 retries (3 total attempts)
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -125,9 +147,14 @@ export async function POST(request: NextRequest) {
       lastError = error instanceof Error ? error : new Error("Verification failed");
       const message = sanitizeError(lastError.message);
 
+      // Check for 429 rate limit error
       if (attempt < maxAttempts && message.includes("429")) {
-        console.log(`[verify] Rate limited on attempt ${attempt}/${maxAttempts}, retrying in 2s...`);
-        await new Promise((r) => setTimeout(r, 2000));
+        // Parse wait time from error message: "Please try again in Xs"
+        const waitMatch = message.match(/try again in (\d+(?:\.\d+)?)\s*s/i);
+        const waitSeconds = waitMatch ? parseFloat(waitMatch[1]) + 0.5 : 3.5;
+        console.log(`[verify] Rate limited on attempt ${attempt}/${maxAttempts}, retrying in ${waitSeconds}s...`);
+        console.log(`[verify] Raw error for debugging: ${message.substring(0, 200)}`);
+        await new Promise((r) => setTimeout(r, waitSeconds * 1000));
         continue;
       }
 
