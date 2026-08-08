@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import pdf from "pdf-parse";
 
 async function parseWithPdfjs(buffer: Buffer): Promise<{ text: string; numPages: number }> {
@@ -7,10 +6,8 @@ async function parseWithPdfjs(buffer: Buffer): Promise<{ text: string; numPages:
   // @ts-ignore - pdfjs-dist v3 types don't cover the /build/pdf.js subpath
   const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
 
-  pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(
-    process.cwd(),
-    "node_modules/pdfjs-dist/build/pdf.worker.js"
-  );
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 
   const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
   const pdfDoc = await loadingTask.promise;
