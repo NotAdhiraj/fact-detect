@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Nav from "@/components/Nav";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,7 +17,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-zinc-950 text-zinc-100 antialiased`}>
+      <body
+        className={`${inter.className} bg-[#0a0a0a] text-zinc-100 antialiased`}
+      >
+        <div className="light-trails" aria-hidden="true">
+          <div className="light-trail" />
+          <div className="light-trail" />
+          <div className="light-trail" />
+          <div className="light-trail" />
+          <div className="light-trail" />
+          <div className="light-trail" />
+        </div>
+        <Nav />
         {children}
       </body>
     </html>

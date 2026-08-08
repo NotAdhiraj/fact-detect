@@ -20,17 +20,19 @@ type DocViewProps = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  confirmed: "bg-green-500/15 text-green-400 border-green-500/25",
-  stale: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  unverifiable: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
-  pending: "bg-blue-500/15 text-blue-400 border-blue-500/25",
+  confirmed:
+    "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  stale: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+  unverifiable:
+    "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+  pending: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
 };
 
 const STATUS_LABEL: Record<string, string> = {
   confirmed: "Confirmed",
   stale: "Stale",
   unverifiable: "Unverifiable",
-  pending: "Pending",
+  pending: "Checking…",
 };
 
 function FlagButton({
@@ -68,20 +70,20 @@ function FlagButton({
     <div className="flex items-center gap-2">
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 text-xs text-zinc-600 transition hover:text-zinc-400"
+        className="inline-flex items-center gap-1 text-[11px] text-zinc-600 transition hover:text-zinc-400"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 16 16"
           fill="currentColor"
-          className="h-3.5 w-3.5"
+          className="h-3 w-3"
         >
           <path d="M2.85 5.5a.75.75 0 0 0-.75.75v3.5c0 .414.336.75.75.75h1.1a.75.75 0 0 1 .75.75v1.25a.375.375 0 0 0 .7 0V10.5a.75.75 0 0 1 .75-.75h2.1a.75.75 0 0 1 .75.75v1.25a.375.375 0 0 0 .7 0V10.5a.75.75 0 0 1 .75-.75h1.1a.75.75 0 0 0 .75-.75V6.25a.75.75 0 0 0-.75-.75h-1.1a.75.75 0 0 1-.75-.75V3.75a.75.75 0 0 0-1.5 0v1.75a.75.75 0 0 1-.75.75h-2.1a.75.75 0 0 1-.75-.75V3.75a.75.75 0 0 0-1.5 0v1.75a.75.75 0 0 1-.75.75H2.85Z" />
         </svg>
-        Flag
+        Flag as wrong
       </button>
       {flagCount > 0 && (
-        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/15 px-1.5 text-[10px] font-medium text-red-400 border border-red-500/25">
+        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-[10px] font-medium text-red-400 border border-red-500/20">
           {flagCount}
         </span>
       )}
@@ -92,12 +94,12 @@ function FlagButton({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional note…"
-            className="w-36 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-zinc-500"
+            className="w-36 rounded-lg border border-white/[0.06] bg-[#1a1a1a] px-2.5 py-1 text-[11px] text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-white/15"
           />
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded bg-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:bg-zinc-600 disabled:opacity-50"
+            className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition hover:bg-white/15 disabled:opacity-50"
           >
             {submitting ? "…" : "Submit"}
           </button>
@@ -118,28 +120,30 @@ function ClaimCard({
   const label = STATUS_LABEL[claim.status] ?? "Pending";
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-      <p className="text-sm leading-relaxed text-zinc-100">{claim.claim_text}</p>
+    <div className="rounded-xl border border-white/[0.06] bg-[#111111] p-5 transition-colors hover:border-white/[0.1]">
+      <p className="text-sm leading-relaxed text-zinc-200">
+        {claim.claim_text}
+      </p>
 
       <div className="mt-3 flex items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${badgeClass}`}
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badgeClass}`}
         >
           {label}
         </span>
         {claim.status === "pending" && (
-          <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-300" />
+          <span className="skeleton-pulse h-3 w-3 rounded-full border-2 border-zinc-600 border-t-zinc-300" />
         )}
       </div>
 
       {claim.reasoning && claim.status !== "pending" && (
-        <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+        <p className="mt-2.5 text-xs leading-relaxed text-zinc-500">
           {claim.reasoning}
         </p>
       )}
 
       {claim.status !== "pending" && (
-        <div className="mt-3">
+        <div className="mt-3 flex justify-end">
           <FlagButton
             claimId={claim.id}
             flagCount={claim.flag_count}
@@ -175,13 +179,73 @@ export default function DocView({
   }, []);
 
   useEffect(() => {
-    if (initialClaims.length > 0) return;
-
     let cancelled = false;
+    const ran = { current: false };
+    if (ran.current) return;
+    ran.current = true;
 
-    async function extractAndVerify() {
+    async function load() {
       setRunning(true);
 
+      // Fetch the doc's claims directly from Supabase via the API
+      // to get the ground-truth state (not just React props).
+      let current: Claim[];
+      try {
+        const res = await fetch(`/api/claims?docId=${docId}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch claims");
+        current = data.claims;
+      } catch {
+        setRunning(false);
+        return;
+      }
+
+      if (cancelled) return;
+
+      // If claims exist, hydrate state from DB and check for pending ones.
+      if (current.length > 0) {
+        setClaims(current);
+
+        const pending = current.filter((c) => c.status === "pending");
+        if (pending.length === 0) {
+          // All claims already verified — nothing to do.
+          setRunning(false);
+          return;
+        }
+
+        // Re-verify only the pending claims.
+        for (const claim of pending) {
+          if (cancelled) return;
+          try {
+            const res = await fetch("/api/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ claimId: claim.id }),
+            });
+            const data = await res.json();
+            if (!res.ok)
+              throw new Error(data.error ?? "Verification failed");
+            if (cancelled) return;
+            updateClaim(claim.id, {
+              status: data.status,
+              reasoning: data.reasoning,
+              verified_at: new Date().toISOString(),
+            });
+          } catch {
+            if (cancelled) return;
+            updateClaim(claim.id, {
+              status: "unverifiable",
+              reasoning: "Verification request failed.",
+              verified_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (!cancelled) setRunning(false);
+        return;
+      }
+
+      // No claims yet — run the full extract + verify pipeline.
       let extracted: { id: string; claim_text: string }[];
       try {
         const res = await fetch("/api/extract", {
@@ -245,11 +309,12 @@ export default function DocView({
       if (!cancelled) setRunning(false);
     }
 
-    extractAndVerify();
+    load();
     return () => {
       cancelled = true;
     };
-  }, [docId, initialClaims.length, updateClaim]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docId]);
 
   const handleRecheck = useCallback(async () => {
     setRunning(true);
@@ -261,51 +326,57 @@ export default function DocView({
 
     for (const claimId of toRecheck) {
       try {
-          const res = await fetch("/api/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ claimId }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "Verification failed");
-          updateClaim(claimId, {
-            status: data.status,
-            reasoning: data.reasoning,
-            verified_at: new Date().toISOString(),
-          });
-        } catch {
-          updateClaim(claimId, {
-            status: "unverifiable",
-            reasoning: "Verification request failed.",
-            verified_at: new Date().toISOString(),
-          });
-        }
+        const res = await fetch("/api/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ claimId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Verification failed");
+        updateClaim(claimId, {
+          status: data.status,
+          reasoning: data.reasoning,
+          verified_at: new Date().toISOString(),
+        });
+      } catch {
+        updateClaim(claimId, {
+          status: "unverifiable",
+          reasoning: "Verification request failed.",
+          verified_at: new Date().toISOString(),
+        });
+      }
     }
 
     setRunning(false);
   }, [claims, updateClaim]);
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-4 py-16 text-zinc-100">
-      <article className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+    <main className="relative min-h-screen px-4 pt-28 pb-16">
+      <div className="hero-glow" aria-hidden="true" />
 
-        <p className="mt-8 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
+      <article className="relative z-10 mx-auto max-w-2xl">
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
+          {title}
+        </h1>
+
+        <p className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-zinc-500">
           {content}
         </p>
 
         <div className="mt-12 flex items-center justify-between">
-          <h2 className="text-lg font-medium tracking-tight">Claims</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+            Claims
+          </h2>
           <button
             onClick={handleRecheck}
             disabled={running}
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-zinc-400 transition hover:border-white/20 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {running ? "Checking…" : "Re-check this doc"}
           </button>
         </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-5 space-y-3">
           {claims.length === 0 && !running && (
             <p className="text-sm text-zinc-600">No claims extracted yet.</p>
           )}
