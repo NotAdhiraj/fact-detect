@@ -44,10 +44,18 @@ function parseClaims(raw: string): ExtractedClaim[] {
     );
   }
 
-  return parsed.filter(
-    (item): item is ExtractedClaim =>
-      typeof item?.claim_text === "string" && item.claim_text.trim().length > 0
-  );
+  return parsed.filter((item): item is ExtractedClaim => {
+    // Must be a non-null object (reject primitives, arrays, bare strings, numbers)
+    if (typeof item !== "object" || item === null || Array.isArray(item)) return false;
+    // Must have a claim_text string field
+    if (typeof (item as Record<string, unknown>).claim_text !== "string") return false;
+    const text = ((item as Record<string, unknown>).claim_text as string).trim();
+    // Must have meaningful content
+    if (text.length < 10) return false;
+    // Must contain at least one letter (reject pure numbers or symbols)
+    if (!/[a-zA-Z]/.test(text)) return false;
+    return true;
+  });
 }
 
 export async function POST(request: NextRequest) {

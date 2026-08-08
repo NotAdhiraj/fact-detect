@@ -3,8 +3,10 @@ import { search } from "@/lib/search";
 import { generateContent, sanitizeError } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 
-type VerificationResult = {
-  status: "confirmed" | "stale" | "unverifiable" | "error";
+type FactFindingResult = {
+  found_contradicting_fact: boolean;
+  contradicting_fact: string | null;
+  found_supporting_evidence: boolean;
   reasoning: string;
 };
 
@@ -17,28 +19,37 @@ type ClaimRow = {
   verified_at: string | null;
 };
 
-const VERIFY_PROMPT = `You verify factual claims against current web search results. For each claim, classify it as one of:
-- "confirmed": the claim is supported by current, authoritative sources
-- "stale": the claim was once true but is now outdated or contradicted by newer sources
-- "unverifiable": the search results don't contain enough information to confirm or deny the claim
+const VERIFY_PROMPT = `You are a fact-checker. Your ONLY job is to report what the search results say about a claim. You do NOT decide whether the claim is "confirmed", "stale", or "unverifiable" — that is done by code after you respond.
 
-CRITICAL RULES FOR ENTITY MATCHING:
-1. You may ONLY confirm a claim if the search results are specifically about the EXACT named entity mentioned in the claim — the full, complete name.
-2. If the claim names a specific product/company (e.g. "CloudSync Pro"), a source about a similarly-named but different product (e.g. just "CloudSync" without "Pro") does NOT count as confirmation — mark as unverifiable unless the source clearly refers to the exact same named entity.
-3. A search result about a different product, company, or person with a similar attribute does NOT confirm the claim. For example, if the claim is about "CloudSync Pro", a result about "Google Drive" offering 2TB storage does NOT confirm it — that is a different entity entirely.
-4. Partial name matches are NOT sufficient. "X" is not the same as "X Pro". "Acme" is not the same as "Acme Corp". The source must reference the exact full entity name.
+For each claim, examine the search results and report your findings as structured JSON.
 
-Do not confirm a claim based on a different entity having a similar attribute or a partial name match. Check that the source specifically names the exact entity in the claim before confirming. If the search results only discuss other entities or use a different/shorter name, the claim is "unverifiable".
+ENTITY MATCHING RULES:
+- You may ONLY consider a search result if it is about the EXACT named entity in the claim.
+- "X" is not the same as "X Pro". "Acme" is not the same as "Acme Corp".
+- A result about a different entity with a similar attribute is NOT relevant to this claim.
 
 Respond with ONLY valid JSON — no markdown fences, no preamble, no explanation.
-Output format: {"status": "<confirmed|stale|unverifiable>", "reasoning": "<one sentence citing what the search found>"}`;
+Output format:
+{
+  "found_contradicting_fact": true or false,
+  "contradicting_fact": "the specific correct fact found in the sources, or null if none",
+  "found_supporting_evidence": true or false,
+  "reasoning": "one sentence explaining what the search results contain"
+}
+
+RULES for your response:
+- found_contradicting_fact = true: Set this to true if the search results state a DIFFERENT specific fact than what the claim asserts (different city, year, name, number, etc.). Always include the contradicting_fact string.
+- found_contradicting_fact = false: Set this to true only if the search results are clearly about the SAME entity AND directly support the claim's assertion.
+- Do NOT set both to true. Contradiction takes priority.
+- If search results contain no relevant information about this specific claim, set both to false.
+- reasoning must be one sentence describing what the search results contain.`;
 
 function buildVerifyPrompt(docTitle: string, claimText: string, resultsText: string): string {
   return `${VERIFY_PROMPT}
 
 ---
 
-DOCUMENT CONTEXT: This claim is about "${docTitle}". Only confirm using search results that are clearly about this specific entity — not a similarly-named or generic product/plan from a different company, even if the claim doesn't repeat the full name.
+DOCUMENT CONTEXT: This claim is about "${docTitle}". Only consider search results that are clearly about this specific entity.
 
 Claim: ${claimText}
 
@@ -52,9 +63,44 @@ function stripFences(content: string): string {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
-function parseVerification(raw: string): VerificationResult {
+function parseFactFinding(raw: string): FactFindingResult {
   const jsonText = stripFences(raw);
-  return JSON.parse(jsonText) as VerificationResult;
+  const parsed = JSON.parse(jsonText) as Record<string, unknown>;
+
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error("Model response was not a JSON object");
+  }
+
+  const foundContradictingFact = parsed.found_contradicting_fact === true;
+  const contradictingFact =
+    typeof parsed.contradicting_fact === "string" && parsed.contradicting_fact.trim().length > 0
+      ? parsed.contradicting_fact.trim()
+      : null;
+  const foundSupportingEvidence = parsed.found_supporting_evidence === true;
+  const reasoning =
+    typeof parsed.reasoning === "string" && parsed.reasoning.trim().length > 0
+      ? parsed.reasoning.trim()
+      : "";
+
+  return {
+    found_contradicting_fact: foundContradictingFact,
+    contradicting_fact: foundContradictingFact ? contradictingFact : null,
+    found_supporting_evidence: foundSupportingEvidence && !foundContradictingFact,
+    reasoning,
+  };
+}
+
+function computeStatus(finding: FactFindingResult): "confirmed" | "stale" | "unverifiable" {
+  if (finding.found_contradicting_fact) return "stale";
+  if (finding.found_supporting_evidence) return "confirmed";
+  return "unverifiable";
+}
+
+function buildReasoningString(finding: FactFindingResult): string {
+  if (finding.found_contradicting_fact && finding.contradicting_fact) {
+    return `Sources state: ${finding.contradicting_fact}. ${finding.reasoning}`;
+  }
+  return finding.reasoning || "Verification produced no reasoning.";
 }
 
 export async function POST(request: NextRequest) {
@@ -81,8 +127,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  // Fetch the document title for entity context
-  const { data: doc, error: docError } = await supabase
+  const { data: doc } = await supabase
     .from("docs")
     .select("title")
     .eq("id", claim.doc_id)
@@ -106,7 +151,7 @@ export async function POST(request: NextRequest) {
 
   if (!searchResults.results || searchResults.results.length === 0) {
     const now = new Date().toISOString();
-    const { error: updateError } = await supabase
+    await supabase
       .from("claims")
       .update({
         status: "unverifiable",
@@ -114,10 +159,6 @@ export async function POST(request: NextRequest) {
         verified_at: now,
       })
       .eq("id", claimId);
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
 
     return NextResponse.json({
       claimId,
@@ -132,28 +173,25 @@ export async function POST(request: NextRequest) {
 
   const prompt = buildVerifyPrompt(docTitle, claim.claim_text, resultsText);
 
-  let result: VerificationResult = { status: "unverifiable", reasoning: "" };
+  let finding: FactFindingResult | null = null;
 
-  const maxAttempts = 3; // Allow up to 2 retries (3 total attempts)
+  const maxAttempts = 3;
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const raw = await generateContent(prompt);
-      result = parseVerification(raw);
+      finding = parseFactFinding(raw);
       lastError = null;
       break;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("Verification failed");
       const message = sanitizeError(lastError.message);
 
-      // Check for 429 rate limit error
       if (attempt < maxAttempts && message.includes("429")) {
-        // Parse wait time from error message: "Please try again in Xs"
         const waitMatch = message.match(/try again in (\d+(?:\.\d+)?)\s*s/i);
         const waitSeconds = waitMatch ? parseFloat(waitMatch[1]) + 0.5 : 3.5;
         console.log(`[verify] Rate limited on attempt ${attempt}/${maxAttempts}, retrying in ${waitSeconds}s...`);
-        console.log(`[verify] Raw error for debugging: ${message.substring(0, 200)}`);
         await new Promise((r) => setTimeout(r, waitSeconds * 1000));
         continue;
       }
@@ -179,26 +217,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ claimId, status: "error", reasoning: message });
   }
 
-  const validStatuses = ["confirmed", "stale", "unverifiable"] as const;
-  const status =
-    typeof result?.status === "string" &&
-    validStatuses.includes(result.status as (typeof validStatuses)[number])
-      ? result.status
-      : "unverifiable";
+  // Deterministic status — model never decides this
+  const status = computeStatus(finding!);
+  const reasoning = buildReasoningString(finding!);
 
-  const reasoning =
-    typeof result?.reasoning === "string" && result.reasoning.trim().length > 0
-      ? result.reasoning.trim()
-      : "Verification produced an unreadable response.";
+  console.log(`[verify] Claim ${claimId}: status="${status}", contradicting=${finding!.found_contradicting_fact}, supporting=${finding!.found_supporting_evidence}`);
 
   const now = new Date().toISOString();
   const { error: updateError } = await supabase
     .from("claims")
-    .update({
-      status,
-      reasoning,
-      verified_at: now,
-    })
+    .update({ status, reasoning, verified_at: now })
     .eq("id", claimId);
 
   if (updateError) {
