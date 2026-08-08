@@ -4,7 +4,7 @@ export default function Home() {
       <div className="max-w-2xl text-center">
         <h1 className="text-4xl font-bold tracking-tight">Fact Rot Detector</h1>
         <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-          Detect when facts in your content have gone stale.
+          Detect when facts in your content have gone stale. working inti
         </p>
       </div>
     </main>
