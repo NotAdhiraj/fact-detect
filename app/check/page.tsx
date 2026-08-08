@@ -140,7 +140,7 @@ export default function CheckPage() {
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Paste your document, README, or doc URL here"
+                placeholder="Paste your document, README, or doc URL here. Max 10 Pages."
                 required
                 rows={12}
                 className="w-full resize-none rounded-xl border border-white/[0.06] bg-[#1a1a1a] px-4 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-white/15 focus:ring-1 focus:ring-white/10"
@@ -204,7 +204,7 @@ export default function CheckPage() {
                         Click to upload a PDF
                       </span>
                       <span className="text-xs text-zinc-600">
-                        Max 10MB — text will be extracted automatically
+                        Max 10 pages — text will be extracted automatically
                       </span>
                     </>
                   )}

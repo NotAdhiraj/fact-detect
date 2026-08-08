@@ -83,13 +83,13 @@ const mockups = [MockDocBox, MockClaimChips, MockBadges];
 
 export default function HowItWorks() {
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden px-4 pt-28 pb-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-4 md:pt-48 pt-28 pb-16">
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-5xl text-center">
-        <span className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-400">
+        {/* <span className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-400">
           How it works
-        </span>
+        </span> */}
 
         <h1 className="mt-6 text-3xl font-semibold leading-none tracking-tight text-zinc-100 sm:text-5xl md:text-[70px]">
           3 steps to catch
