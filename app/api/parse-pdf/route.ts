@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
   try {
     const data = await pdf(buffer);
 
+    if (data.numpages > 10) {
+      return NextResponse.json(
+        {
+          error: `This PDF has ${data.numpages} pages. Please upload a document with 10 pages or fewer to keep verification fast and accurate.`,
+        },
+        { status: 422 }
+      );
+    }
+
     if (!data.text || data.text.trim().length === 0) {
       return NextResponse.json(
         {
