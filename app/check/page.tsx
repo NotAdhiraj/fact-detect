@@ -15,19 +15,21 @@ export default function CheckPage() {
   const [activeTab, setActiveTab] = useState<"paste" | "pdf">("paste");
   const [parsingPdf, setParsingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
-  const handlePdfUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
+  const processPdfFile = useCallback(
+    async (file: File) => {
       setPdfError(null);
+
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        setPdfError("Only PDF files are supported.");
+        return;
+      }
 
       if (file.size > MAX_FILE_SIZE) {
         setPdfError(
           `File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB.`
         );
-        e.target.value = "";
         return;
       }
 
@@ -49,7 +51,6 @@ export default function CheckPage() {
 
         setContent(data.text);
 
-        // Auto-fill title from filename if empty
         if (!title.trim()) {
           const name = file.name.replace(/\.pdf$/i, "");
           setTitle(name);
@@ -58,10 +59,44 @@ export default function CheckPage() {
         setPdfError("Failed to upload PDF. Please try again.");
       } finally {
         setParsingPdf(false);
-        e.target.value = "";
       }
     },
     [title]
+  );
+
+  const handlePdfInput = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      await processPdfFile(file);
+      e.target.value = "";
+    },
+    [processPdfFile]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragging(false);
+
+      const file = e.dataTransfer.files?.[0];
+      if (!file) return;
+      await processPdfFile(file);
+    },
+    [processPdfFile]
   );
 
   const handleSubmit = useCallback(
@@ -87,11 +122,20 @@ export default function CheckPage() {
   );
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-4 pt-24 pb-16">
+    <main
+      className="relative flex min-h-screen items-center justify-center px-4 pt-24 pb-16"
+      onDragOver={activeTab === "pdf" ? handleDragOver : undefined}
+      onDragLeave={activeTab === "pdf" ? handleDragLeave : undefined}
+      onDrop={activeTab === "pdf" ? handleDrop : undefined}
+    >
       <div className="hero-glow" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto w-full max-w-[700px]">
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5 shadow-2xl shadow-black/40 transition-all duration-200 hover:border-white/20 sm:p-8">
+        <div className={`rounded-2xl border bg-[#111111] p-5 shadow-2xl shadow-black/40 transition-all duration-200 sm:p-8 ${
+          dragging
+            ? "border-blue-500/50 bg-blue-500/5"
+            : "border-white/[0.06] hover:border-white/20"
+        }`}>
           <h1 className="text-xl font-semibold tracking-tight text-zinc-100 sm:text-2xl">
             Check for Fact Rot
           </h1>
@@ -140,7 +184,7 @@ export default function CheckPage() {
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Paste your document, README, or doc URL here. Max 10 Pages."
+                placeholder="Paste your document, README, or doc URL here"
                 required
                 rows={12}
                 className="w-full resize-none rounded-xl border border-white/[0.06] bg-[#1a1a1a] px-4 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-white/15 focus:ring-1 focus:ring-white/10"
@@ -149,10 +193,17 @@ export default function CheckPage() {
               <div className="space-y-3">
                 <div
                   onClick={() => !parsingPdf && fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                   className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-10 transition ${
-                    parsingPdf
-                      ? "border-blue-500/30 bg-blue-500/5 cursor-wait"
-                      : "border-white/[0.08] bg-[#1a1a1a] hover:border-white/[0.15] cursor-pointer"
+                    dragging
+                      ? "border-blue-500/50 bg-blue-500/5"
+                      : parsingPdf
+                        ? "border-blue-500/30 bg-blue-500/5 cursor-wait"
+                        : content
+                          ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50 cursor-pointer"
+                          : "border-white/[0.08] bg-[#1a1a1a] hover:border-white/[0.15] cursor-pointer"
                   }`}
                 >
                   {parsingPdf ? (
@@ -182,7 +233,26 @@ export default function CheckPage() {
                         extracted
                       </span>
                       <span className="text-xs text-zinc-600">
-                        Click to upload a different PDF
+                        Click or drag a different PDF to replace
+                      </span>
+                    </>
+                  ) : dragging ? (
+                    <>
+                      <svg
+                        className="h-8 w-8 text-blue-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m-3-3h6m-3-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                        />
+                      </svg>
+                      <span className="text-sm text-blue-400">
+                        Drop your PDF here
                       </span>
                     </>
                   ) : (
@@ -201,10 +271,10 @@ export default function CheckPage() {
                         />
                       </svg>
                       <span className="text-sm text-zinc-400">
-                        Click to upload a PDF
+                        Drag a PDF here or click to upload
                       </span>
                       <span className="text-xs text-zinc-600">
-                        Max 10 pages — text will be extracted automatically
+                        Max 10 pages, 10MB — text extracted automatically
                       </span>
                     </>
                   )}
@@ -214,7 +284,7 @@ export default function CheckPage() {
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf,application/pdf"
-                  onChange={handlePdfUpload}
+                  onChange={handlePdfInput}
                   className="hidden"
                 />
 
@@ -227,11 +297,11 @@ export default function CheckPage() {
             )}
 
             <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={submitting || !title.trim() || !content.trim()}
-              className="w-full rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:w-auto"
-            >
+              <button
+                type="submit"
+                disabled={submitting || !title.trim() || !content.trim()}
+                className="w-full rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-white hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:w-auto"
+              >
                 {submitting ? "Creating…" : "Check for Fact Rot"}
               </button>
             </div>

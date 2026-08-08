@@ -2,6 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+type FlagData = {
+  id: string;
+  note: string;
+  created_at: string;
+};
+
 type Claim = {
   id: string;
   doc_id: string;
@@ -9,7 +15,7 @@ type Claim = {
   status: string;
   reasoning: string | null;
   verified_at: string | null;
-  flag_count: number;
+  flags: FlagData[];
 };
 
 type DocViewProps = {
@@ -37,16 +43,30 @@ const STATUS_LABEL: Record<string, string> = {
   error: "Error",
 };
 
+function formatFlagTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
 function FlagButton({
   claimId,
-  flagCount,
+  flags,
   onFlagged,
 }: {
   claimId: string;
-  flagCount: number;
-  onFlagged: (claimId: string, newCount: number) => void;
+  flags: FlagData[];
+  onFlagged: (claimId: string, newFlags: FlagData[]) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [showList, setShowList] = useState(false);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -59,37 +79,57 @@ function FlagButton({
         body: JSON.stringify({ claimId, note }),
       });
       if (res.ok) {
-        onFlagged(claimId, flagCount + 1);
+        const newFlag: FlagData = {
+          id: crypto.randomUUID(),
+          note: note.trim(),
+          created_at: new Date().toISOString(),
+        };
+        onFlagged(claimId, [...flags, newFlag]);
         setNote("");
-        setOpen(false);
+        setShowForm(false);
+        setShowList(true);
       }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const flagCount = flags.length;
+
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 text-[11px] text-zinc-600 transition hover:text-zinc-400"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className="h-3 w-3"
+    <div className="flex flex-col items-end gap-1.5">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            setShowForm(!showForm);
+            if (showList) setShowList(false);
+          }}
+          className="inline-flex items-center gap-1 text-[11px] text-zinc-600 transition hover:text-zinc-400"
         >
-          <path d="M2.85 5.5a.75.75 0 0 0-.75.75v3.5c0 .414.336.75.75.75h1.1a.75.75 0 0 1 .75.75v1.25a.375.375 0 0 0 .7 0V10.5a.75.75 0 0 1 .75-.75h2.1a.75.75 0 0 1 .75.75v1.25a.375.375 0 0 0 .7 0V10.5a.75.75 0 0 1 .75-.75h1.1a.75.75 0 0 0 .75-.75V6.25a.75.75 0 0 0-.75-.75h-1.1a.75.75 0 0 1-.75-.75V3.75a.75.75 0 0 0-1.5 0v1.75a.75.75 0 0 1-.75.75h-2.1a.75.75 0 0 1-.75-.75V3.75a.75.75 0 0 0-1.5 0v1.75a.75.75 0 0 1-.75.75H2.85Z" />
-        </svg>
-        Flag as wrong
-      </button>
-      {flagCount > 0 && (
-        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-[10px] font-medium text-red-400 border border-red-500/20">
-          {flagCount}
-        </span>
-      )}
-      {open && (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className="h-3 w-3"
+          >
+            <path d="M2.85 5.5a.75.75 0 0 0-.75.75v3.5c0 .414.336.75.75.75h1.1a.75.75 0 0 1 .75.75v1.25a.375.375 0 0 0 .7 0V10.5a.75.75 0 0 1 .75-.75h2.1a.75.75 0 0 1 .75.75v1.25a.375.375 0 0 0 .7 0V10.5a.75.75 0 0 1 .75-.75h1.1a.75.75 0 0 0 .75-.75V6.25a.75.75 0 0 0-.75-.75h-1.1a.75.75 0 0 1-.75-.75V3.75a.75.75 0 0 0-1.5 0v1.75a.75.75 0 0 1-.75.75h-2.1a.75.75 0 0 1-.75-.75V3.75a.75.75 0 0 0-1.5 0v1.75a.75.75 0 0 1-.75.75H2.85Z" />
+          </svg>
+          Flag as wrong
+        </button>
+        {flagCount > 0 && (
+          <button
+            onClick={() => {
+              setShowList(!showList);
+              if (showForm) setShowForm(false);
+            }}
+            className="inline-flex h-5 min-w-[20px] cursor-pointer items-center justify-center rounded-full bg-red-500/10 px-1.5 text-[10px] font-medium text-red-400 border border-red-500/20 transition-colors hover:bg-red-500/20"
+          >
+            {flagCount} {flagCount === 1 ? "flag" : "flags"}
+          </button>
+        )}
+      </div>
+
+      {showForm && (
         <div className="flex items-center gap-1.5">
           <input
             type="text"
@@ -107,6 +147,21 @@ function FlagButton({
           </button>
         </div>
       )}
+
+      {showList && flagCount > 0 && (
+        <div className="w-full space-y-1.5 rounded-lg border border-white/[0.06] bg-[#0e0e0e] p-2.5">
+          {flags.map((f) => (
+            <div key={f.id} className="flex items-start justify-between gap-2">
+              <span className="text-[11px] leading-relaxed text-zinc-400">
+                {f.note || "Flagged as incorrect"}
+              </span>
+              <span className="shrink-0 text-[10px] text-zinc-600">
+                {formatFlagTime(f.created_at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -117,7 +172,7 @@ function ClaimCard({
   onRetry,
 }: {
   claim: Claim;
-  onFlagged: (claimId: string, newCount: number) => void;
+  onFlagged: (claimId: string, newFlags: FlagData[]) => void;
   onRetry: (claimId: string) => void;
 }) {
   const badgeClass = STATUS_STYLES[claim.status] ?? STATUS_STYLES.pending;
@@ -161,7 +216,7 @@ function ClaimCard({
         <div className="mt-3 flex justify-end">
           <FlagButton
             claimId={claim.id}
-            flagCount={claim.flag_count}
+            flags={claim.flags}
             onFlagged={onFlagged}
           />
         </div>
@@ -193,10 +248,10 @@ export default function DocView({
     );
   }, []);
 
-  const handleFlagged = useCallback((claimId: string, newCount: number) => {
+  const handleFlagged = useCallback((claimId: string, newFlags: FlagData[]) => {
     setClaims((prev) =>
       prev.map((c) =>
-        c.id === claimId ? { ...c, flag_count: newCount } : c
+        c.id === claimId ? { ...c, flags: newFlags } : c
       )
     );
   }, []);
@@ -252,8 +307,6 @@ export default function DocView({
     async function load() {
       setRunning(true);
 
-      // Fetch the doc's claims directly from Supabase via the API
-      // to get the ground-truth state (not just React props).
       let current: Claim[];
       try {
         const res = await fetch(`/api/claims?docId=${docId}`);
@@ -267,18 +320,15 @@ export default function DocView({
 
       if (cancelled) return;
 
-      // If claims exist, hydrate state from DB and check for pending ones.
       if (current.length > 0) {
         setClaims(current);
 
         const pending = current.filter((c) => c.status === "pending");
         if (pending.length === 0) {
-          // All claims already verified — nothing to do.
           setRunning(false);
           return;
         }
 
-        // Re-verify only the pending claims.
         const total = pending.length;
         setProgress({ current: 0, total });
         for (let i = 0; i < pending.length; i++) {
@@ -316,7 +366,6 @@ export default function DocView({
         return;
       }
 
-      // No claims yet — run the full extract + verify pipeline.
       let extracted: { id: string; claim_text: string }[];
       try {
         const res = await fetch("/api/extract", {
@@ -344,7 +393,7 @@ export default function DocView({
         status: "pending",
         reasoning: null,
         verified_at: null,
-        flag_count: 0,
+        flags: [],
       }));
 
       if (cancelled) return;

@@ -38,9 +38,9 @@ Output format:
 }
 
 RULES for your response:
-- found_contradicting_fact = true: Set this to true if the search results state a DIFFERENT specific fact than what the claim asserts (different city, year, name, number, etc.). Always include the contradicting_fact string.
-- found_contradicting_fact = false: Set this to true only if the search results are clearly about the SAME entity AND directly support the claim's assertion.
-- Do NOT set both to true. Contradiction takes priority.
+- If you can name a specific real fact that differs from the claim (different city, number, date, name, etc.), you MUST set found_contradicting_fact to true and put that fact in contradicting_fact. This is true even if you're not 100% certain, as long as a reliable source states it clearly. A named contradicting fact IS a contradiction — do not suppress the boolean.
+- found_contradicting_fact = true: search results state a DIFFERENT specific fact than what the claim asserts. Always include the contradicting_fact string with the correct fact.
+- found_supporting_evidence = true: search results are clearly about the SAME entity AND directly support the claim. Do NOT set this if found_contradicting_fact is true.
 - If search results contain no relevant information about this specific claim, set both to false.
 - reasoning must be one sentence describing what the search results contain.`;
 
@@ -88,6 +88,20 @@ function parseFactFinding(raw: string): FactFindingResult {
     found_supporting_evidence: foundSupportingEvidence && !foundContradictingFact,
     reasoning,
   };
+}
+
+function reconcileFinding(finding: FactFindingResult): FactFindingResult {
+  // If the model named a specific contradicting fact but set the boolean to false, override it.
+  // A named contradicting fact IS a contradiction regardless of what the boolean says.
+  if (!finding.found_contradicting_fact && finding.contradicting_fact) {
+    console.log(`[verify] Override: contradicting_fact is "${finding.contradicting_fact}" but found_contradicting_fact was false — overriding to true`);
+    return {
+      ...finding,
+      found_contradicting_fact: true,
+      found_supporting_evidence: false,
+    };
+  }
+  return finding;
 }
 
 function computeStatus(finding: FactFindingResult): "confirmed" | "stale" | "unverifiable" {
@@ -182,6 +196,13 @@ export async function POST(request: NextRequest) {
     try {
       const raw = await generateContent(prompt);
       finding = parseFactFinding(raw);
+
+      // Log raw model response for debugging
+      console.log(`[verify] Raw model JSON for claim ${claimId}:`, JSON.stringify(finding));
+
+      // Reconcile: override boolean if contradicting_fact was populated
+      finding = reconcileFinding(finding!);
+
       lastError = null;
       break;
     } catch (error) {
@@ -221,7 +242,7 @@ export async function POST(request: NextRequest) {
   const status = computeStatus(finding!);
   const reasoning = buildReasoningString(finding!);
 
-  console.log(`[verify] Claim ${claimId}: status="${status}", contradicting=${finding!.found_contradicting_fact}, supporting=${finding!.found_supporting_evidence}`);
+  console.log(`[verify] Claim ${claimId}: status="${status}", contradicting=${finding!.found_contradicting_fact}, contradicting_fact="${finding!.contradicting_fact}", supporting=${finding!.found_supporting_evidence}`);
 
   const now = new Date().toISOString();
   const { error: updateError } = await supabase

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+type FlagData = {
+  id: string;
+  note: string;
+  created_at: string;
+};
+
 type ClaimRow = {
   id: string;
   doc_id: string;
@@ -8,7 +14,7 @@ type ClaimRow = {
   status: string;
   reasoning: string | null;
   verified_at: string | null;
-  flag_count: number;
+  flags: FlagData[];
 };
 
 export async function GET(request: NextRequest) {
@@ -29,22 +35,28 @@ export async function GET(request: NextRequest) {
 
   const claimIds = (claims ?? []).map((c) => c.id);
 
-  let flagCounts: Record<string, number> = {};
+  const flagsByClaim: Record<string, FlagData[]> = {};
   if (claimIds.length > 0) {
     const { data: flags } = await supabase
       .from("flags")
-      .select("claim_id")
-      .in("claim_id", claimIds);
+      .select("id, claim_id, note, created_at")
+      .in("claim_id", claimIds)
+      .order("created_at", { ascending: true });
 
     for (const f of flags ?? []) {
-      flagCounts[f.claim_id] = (flagCounts[f.claim_id] ?? 0) + 1;
+      if (!flagsByClaim[f.claim_id]) flagsByClaim[f.claim_id] = [];
+      flagsByClaim[f.claim_id].push({
+        id: f.id,
+        note: f.note,
+        created_at: f.created_at,
+      });
     }
   }
 
-  const enriched: ClaimRow[] = ((claims as Omit<ClaimRow, "flag_count">[]) ?? []).map(
+  const enriched: ClaimRow[] = ((claims ?? []) as Omit<ClaimRow, "flags">[]).map(
     (c) => ({
       ...c,
-      flag_count: flagCounts[c.id] ?? 0,
+      flags: flagsByClaim[c.id] ?? [],
     })
   );
 
