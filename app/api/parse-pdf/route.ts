@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Couldn't parse this PDF — it may be corrupted. Try pasting the text directly.",
+            "This PDF couldn't be parsed — AI-generated PDFs are not supported. Try pasting the text directly instead.",
           details: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
         },
         { status: 422 }
